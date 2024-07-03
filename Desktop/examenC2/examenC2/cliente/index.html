@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mensajes SSE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #4a90e2;
+        }
+        .message-container, .messages-container {
+            background-color: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"], select {
+            padding: 10px;
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4a90e2;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #357abd;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul li {
+            background-color: #f9f9f9;
+            margin-bottom: 5px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="message-container">
+            <h1>Enviar Mensaje</h1>
+            <input type="text" id="message" placeholder="Escribe tu mensaje">
+            <select id="type">
+                <option value="alumno">Alumno</option>
+                <option value="docente">Docente</option>
+            </select>
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+        <div class="messages-container">
+            <h2>Mensajes a Alumnos</h2>
+            <ul id="alumnosMessages"></ul>
+        </div>
+        <div class="messages-container">
+            <h2>Mensajes a Docentes</h2>
+            <ul id="docentesMessages"></ul>
+        </div>
+    </div>
+
+    <script>
+        function sendMessage() {
+            const message = document.getElementById('message').value;
+            const type = document.getElementById('type').value;
+
+            fetch('http://localhost:3000/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message, type })
+            }).then(response => response.text()).then(data => console.log(data));
+        }
+
+        function startListening() {
+            const alumnosEventSource = new EventSource('http://localhost:3000/events/alumnos');
+            alumnosEventSource.onmessage = function(event) {
+                const messages = JSON.parse(event.data);
+                const alumnosList = document.getElementById('alumnosMessages');
+                alumnosList.innerHTML = '';
+                messages.forEach(msg => {
+                    const li = document.createElement('li');
+                    li.textContent = msg;
+                    alumnosList.appendChild(li);
+                });
+            };
+
+            const docentesEventSource = new EventSource('http://localhost:3000/events/docentes');
+            docentesEventSource.onmessage = function(event) {
+                const messages = JSON.parse(event.data);
+                const docentesList = document.getElementById('docentesMessages');
+                docentesList.innerHTML = '';
+                messages.forEach(msg => {
+                    const li = document.createElement('li');
+                    li.textContent = msg;
+                    docentesList.appendChild(li);
+                });
+            };
+        }
+
+        window.onload = startListening;
+    </script>
+</body>
+</html>
